@@ -1,0 +1,22 @@
+version: "3.8"
+
+services:
+  cuenta-service:
+    build: .
+    container_name: cuenta_service
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    depends_on:
+      - inte4_cuenta_db
+    networks:
+      - inte4_net
+    ports:
+      - "8005:8005"
+    restart: unless-stopped
+
+
+
+networks:
+  inte4_net:
+    name: inte4_net
+
