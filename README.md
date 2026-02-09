@@ -1,19 +1,30 @@
-Sistema Gestion De Viajes Microservicios
+🚀 Sistema de Gestión de Viajes – Arquitectura de Microservicios
 
-Este módulo contiene los seis microservicios Spring Boot junto con la infraestructura para ejecutarlos en contenedores Docker.
+Plataforma backend desarrollada con Spring Boot, arquitectura de microservicios desacoplados, autenticación JWT, contenedorización con Docker, bases de datos MySQL y MongoDB, documentación con Swagger y testing automatizado.
 
-- `microservicio-user`
-- `microservicio-parada`
-- `microservicio-monopatin`
-- `microservicio-viaje`
-- `microservicio-cuenta`
-- `microservicio-facturacion`
-- `mock.mercadopago`
-- `groq-client`
+🔧 Tecnologías principales
 
-Cada microservicio incluye `Dockerfile`, configuración local (`application.properties`) y configuración para Docker (`application-docker.properties`).
+- Java 17
 
----
+- Spring Boot
+ 
+- Spring Security + JWT
+
+- Feign Client
+
+- MySQL / MongoDB
+
+- Docker & Docker Compose
+
+- Maven
+
+- JUnit + Mockito
+
+- OpenAPI (Swagger)
+
+🧱 Arquitectura
+
+6 microservicios independientes + base de datos por servicio + comunicación HTTP entre servicios.
 
 ## Requisitos
 
