@@ -1,4 +1,4 @@
-🚀 Sistema de Gestión de Viajes – Arquitectura de Microservicios
+## 🚀 Sistema de Gestión de Viajes – Arquitectura de Microservicios
 
 Plataforma backend desarrollada con Spring Boot, arquitectura de microservicios desacoplados, autenticación JWT, contenedorización con Docker, bases de datos MySQL y MongoDB, documentación con Swagger y testing automatizado.
 
@@ -25,6 +25,8 @@ Plataforma backend desarrollada con Spring Boot, arquitectura de microservicios 
 🧱 Arquitectura
 
 6 microservicios independientes + base de datos por servicio + comunicación HTTP entre servicios.
+
+---
 
 ## Requisitos
 
