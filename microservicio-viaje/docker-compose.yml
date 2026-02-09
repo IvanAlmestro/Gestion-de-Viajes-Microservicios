@@ -1,0 +1,19 @@
+version: "3.8"
+
+services:
+  viaje-service:
+    build: .
+    container_name: viaje_service
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    depends_on:
+      - inte4_viaje_db
+    networks:
+      - inte4_net
+    ports:
+      - "8004:8004"
+    restart: unless-stopped
+
+networks:
+  inte4_net:
+    external: true

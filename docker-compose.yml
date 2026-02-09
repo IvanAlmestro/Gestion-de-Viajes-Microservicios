@@ -1,0 +1,254 @@
+services:
+  # 🚌 Microservicio de Facturacion
+  facturacion-service:
+    build:
+      context: .
+      dockerfile: microservicio-facturacion/Dockerfile
+    container_name: facturacion_service
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    depends_on:
+      - inte4_facturacion_db
+    ports:
+      - "8010:8010"
+    networks:
+      - inte4_net
+    restart: unless-stopped
+
+  inte4_facturacion_db:
+    image: mysql:8.0
+    container_name: inte4_facturacion_db
+    environment:
+      MYSQL_ROOT_PASSWORD: 1234
+      MYSQL_DATABASE: facturacion
+      MYSQL_USER: integrador
+      MYSQL_PASSWORD: integrador123
+      MYSQL_ROOT_HOST: "%"
+    ports:
+      - "3310:3306"
+    healthcheck:
+      test: [ "CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p1234" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+    networks:
+      - inte4_net
+    restart: unless-stopped
+
+  ## GROQ-CLIENT
+  groq-client:
+    build: ./groq-client
+    container_name: groq_client_h2
+    ports:
+      - "8011:8011"
+    environment: [ ]
+    networks:
+      - inte4_net
+    restart: unless-stopped
+
+  # 🚌 Microservicio de Paradas
+  parada-service:
+    build:
+      context: .
+      dockerfile: microservicio-parada/Dockerfile
+    container_name: parada_service
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    depends_on:
+      - inte4_parada_db
+    ports:
+      - "8002:8002"
+    networks:
+      - inte4_net
+    restart: unless-stopped
+
+  inte4_parada_db:
+    image: mysql:8.0
+    container_name: inte4_parada_db
+    environment:
+      MYSQL_ROOT_PASSWORD: 1234
+      MYSQL_DATABASE: parada
+      MYSQL_USER: integrador
+      MYSQL_PASSWORD: integrador123
+      MYSQL_ROOT_HOST: "%"
+    ports:
+      - "3307:3306"
+    healthcheck:
+      test: [ "CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p1234" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+    networks:
+      - inte4_net
+    restart: unless-stopped
+
+
+  # 👤 Microservicio de Usuarios
+  user-service:
+    build:
+      context: .
+      dockerfile: microservicio-user/Dockerfile
+    container_name: user_service
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    depends_on:
+      inte4_user_db:
+        condition: service_healthy
+    ports:
+      - "8001:8001"
+    networks:
+      - inte4_net
+    restart: unless-stopped
+
+  inte4_user_db:
+    image: mysql:8.0
+    container_name: inte4_user_db
+    environment:
+      MYSQL_ROOT_PASSWORD: 1234
+      MYSQL_DATABASE: user
+      MYSQL_USER: integrador
+      MYSQL_PASSWORD: integrador123
+      MYSQL_ROOT_HOST: "%"
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: [ "CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p1234" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+    networks:
+      - inte4_net
+    restart: unless-stopped
+
+  # 🛴 Microservicio de Monopatines
+  monopatin-service:
+    build:
+      context: .
+      dockerfile: microservicio-monopatin/Dockerfile
+    container_name: monopatin_service
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    depends_on:
+      inte4_monopatin_db:
+        condition: service_healthy
+    ports:
+      - "8003:8003"
+    networks:
+      - inte4_net
+    restart: unless-stopped
+
+  inte4_monopatin_db:
+    image: mongo:6.0
+    container_name: inte4_monopatin_db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: root
+      MONGO_INITDB_DATABASE: monopatin
+    ports:
+      - "27017:27017"
+    healthcheck:
+      test: ["CMD-SHELL", "mongosh --quiet -u root -p root --authenticationDatabase admin --eval \"db.adminCommand('ping')\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - inte4_net
+    restart: unless-stopped
+
+  # 🚗 Microservicio de Viajes
+  viaje-service:
+    build:
+      context: .
+      dockerfile: microservicio-viaje/Dockerfile
+    container_name: viaje_service
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    depends_on:
+      inte4_viaje_db:
+        condition: service_healthy
+    ports:
+      - "8004:8004"
+    networks:
+      - inte4_net
+    restart: unless-stopped
+
+  inte4_viaje_db:
+    image: mysql:8.0
+    container_name: inte4_viaje_db
+    environment:
+      MYSQL_ROOT_PASSWORD: 1234
+      MYSQL_DATABASE: viaje
+      MYSQL_USER: integrador
+      MYSQL_PASSWORD: integrador123
+      MYSQL_ROOT_HOST: "%"
+    ports:
+      - "3308:3306"
+    healthcheck:
+      test: [ "CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p1234" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+    networks:
+      - inte4_net
+    restart: unless-stopped
+
+  ## MOCKSERVER
+  mock-mercadopago:
+    build: ./mock-mercadopago
+    container_name: mock_mercadopago
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    ports:
+      - "8009:8009"
+    networks:
+      - inte4_net
+    restart: unless-stopped
+
+  # 💰 Microservicio de Cuentas
+  cuenta-service:
+    build:
+      context: .
+      dockerfile: microservicio-cuenta/Dockerfile
+    container_name: cuenta_service
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    depends_on:
+      inte4_cuenta_db:
+        condition: service_healthy
+    ports:
+      - "8005:8005"
+    networks:
+      - inte4_net
+    restart: unless-stopped
+
+  inte4_cuenta_db:
+    image: mysql:8.0
+    container_name: inte4_cuenta_db
+    environment:
+      MYSQL_ROOT_PASSWORD: 1234
+      MYSQL_DATABASE: cuenta
+      MYSQL_USER: integrador
+      MYSQL_PASSWORD: integrador123
+      MYSQL_ROOT_HOST: "%"
+    ports:
+      - "3309:3306"
+    healthcheck:
+      test: [ "CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p1234" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+    networks:
+      - inte4_net
+    restart: unless-stopped
+
+networks:
+  inte4_net:
+    driver: bridge
+
+

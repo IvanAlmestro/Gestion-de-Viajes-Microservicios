@@ -1,0 +1,23 @@
+version: "3.8"
+
+services:
+  user-service:
+    build: .
+    container_name: user_service
+    environment:
+      DB_HOST: inte4_mysql
+      DB_PORT: 3306
+      DB_NAME: user
+      DB_USER: integrador
+      DB_PASSWORD: integrador123
+    depends_on:
+      - mysql
+    networks:
+      - inte4_net
+    ports:
+      - "8001:8001"
+    restart: unless-stopped
+
+networks:
+  inte4_net:
+    external: true

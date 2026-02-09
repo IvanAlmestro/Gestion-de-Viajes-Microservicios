@@ -1,0 +1,19 @@
+version: "3.8"
+
+services:
+  monopatin-service:
+    build: .
+    container_name: monopatin_service
+    environment:
+      MONGO_URI: mongodb://root:root@inte4_mongo:27017/monopatin?authSource=admin
+    depends_on:
+      - mongo
+    networks:
+      - inte4_net
+    ports:
+      - "8085:8080"
+    restart: unless-stopped
+
+networks:
+  inte4_net:
+    external: true

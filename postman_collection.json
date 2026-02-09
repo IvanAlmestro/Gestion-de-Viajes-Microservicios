@@ -1,0 +1,1022 @@
+{
+  "info": {
+    "_postman_id": "f9931c68-6c0b-4f67-9ad3-5bde748076fb",
+    "name": "Microservicios Grupo8",
+    "description": "Colección reorganizada para ejecutar el flujo principal end-to-end y consultar los CRUD de cada microservicio por separado.\n\n🔐 AUTENTICACIÓN JWT:\n1. PRIMERO: Ejecuta '00 - Registrarse' o '01 - Login' para obtener el token JWT\n2. El token se guarda automáticamente en la variable 'jwt_token'\n3. Todos los requests (excepto /register y /login) usan automáticamente el token JWT como Bearer Token\n4. No necesitas configurar Authorization manualmente - se agrega automáticamente\n\n👤 ROLES:\n- ADMIN: Para gestionar usuarios, cuentas, paradas, monopatines, tarifas y reportes\n- USER: Para iniciar/finalizar viajes, buscar monopatines cercanos, ver uso personal\n- MANTENIMIENTO: Para actualizar estados de monopatines y registrar mantenimientos\n\n⚠️ IMPORTANTE:\n- Si recibes 403 Forbidden, verifica que el token sea válido y que el usuario tenga el rol correcto\n- El token expira después de 24 horas (por defecto)\n- Para cambiar de rol, registra/login con un usuario diferente",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "exec": [
+          "// Script automático: Agrega el token JWT a todos los requests (excepto /register y /login)",
+          "var requestUrl = pm.request.url.toString();",
+          "var isPublicEndpoint = requestUrl.includes('/users/register') || requestUrl.includes('/users/login');",
+          "",
+          "if (!isPublicEndpoint) {",
+          "    var token = pm.environment.get('jwt_token');",
+          "    if (token) {",
+          "        // Remover cualquier header Authorization existente",
+          "        pm.request.headers.remove('Authorization');",
+          "        // Agregar el token JWT como Bearer Token",
+          "        pm.request.headers.add({",
+          "            key: 'Authorization',",
+          "            value: 'Bearer ' + token",
+          "        });",
+          "        console.log('✅ Token JWT agregado automáticamente');",
+          "    } else {",
+          "        console.warn('⚠️ No se encontró jwt_token en el environment. Ejecuta primero /register o /login');",
+          "    }",
+          "} else {",
+          "    console.log('ℹ️ Endpoint público - no se requiere token');",
+          "}"
+        ],
+        "type": "text/javascript"
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "anio_busqueda",
+      "value": "2025"
+    },
+    {
+      "key": "mes_inicio_actual",
+      "value": "10"
+    },
+    {
+      "key": "mes_fin_actual",
+      "value": "12"
+    },
+    {
+      "key": "minutos_viaje",
+      "value": "60"
+    },
+    {
+      "key": "kilometros_recorridos",
+      "value": "3.5"
+    },
+    {
+      "key": "pausa_extendida",
+      "value": "false"
+    },
+    {
+      "key": "min_viajes",
+      "value": "1"
+    }
+  ],
+  "item": [
+    {
+      "name": "Flujo Principal",
+      "description": "Ejecución recomendada paso a paso: crear datos base, iniciar viaje, registrar pausa opcional, finalizar viaje y consultar reportes.",
+      "item": [
+        {
+          "name": "00 - Registrarse (crear usuario y obtener JWT)",
+          "description": "🔓 ENDPOINT PÚBLICO - No requiere autenticación\n\nCrea un nuevo usuario y devuelve el token JWT automáticamente.\n\n📝 Notas:\n- Si no especificas 'rol', se asigna 'USER' por defecto\n- El token se guarda automáticamente en 'jwt_token'\n- El user_id se guarda automáticamente\n\n💡 Usa este endpoint cuando:\n- Es la primera vez que usas la API\n- Necesitas crear un nuevo usuario\n- Quieres obtener un token sin tener usuario previo",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.environment.set('jwt_token', jsonData.token);",
+                  "    pm.environment.set('user_id', jsonData.userId);",
+                  "    console.log('Usuario registrado. Token guardado:', jsonData.token);",
+                  "    console.log('User ID:', jsonData.userId);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Hugo\",\n  \"apellido\": \"Ferrari\",\n  \"mail\": \"hugo@example.com\",\n  \"telefono\": \"+54 9 11 5555 5555\",\n  \"rol\": \"USER\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{user_base_url}}/users/register"
+          }
+        },
+        {
+          "name": "01 - Login (obtener JWT token)",
+          "description": "🔓 ENDPOINT PÚBLICO - No requiere autenticación\n\nInicia sesión con un usuario existente y obtiene el token JWT.\n\n📝 Notas:\n- Puedes usar 'userId' o 'email' para autenticarte\n- El token se guarda automáticamente en 'jwt_token'\n\n💡 Usa este endpoint cuando:\n- Ya tienes un usuario creado\n- Necesitas renovar tu token\n- Quieres cambiar de usuario/rol",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.environment.set('jwt_token', jsonData.token);",
+                  "    console.log('Token guardado:', jsonData.token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": {{user_id}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{user_base_url}}/users/login"
+          }
+        },
+        {
+          "name": "02 - Crear usuario base (requiere autenticación)",
+          "description": "🔐 Requiere: ADMIN\n\nCrea un usuario desde el panel de administración.\n\n💡 Usa este endpoint cuando:\n- Eres ADMIN y quieres crear usuarios desde el panel\n- Prefieres usar el endpoint de administración en lugar de /register",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Hugo\",\n  \"apellido\": \"Ferrari\",\n  \"mail\": \"hugo@example.com\",\n  \"telefono\": \"+54 9 11 5555 5555\",\n  \"rol\": \"ADMIN\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{user_base_url}}/users"
+          }
+        },
+        {
+          "name": "Como admin: Reporte de monopatines con mas km",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{user_base_url}}//{idUser}/monopatines-mas-viajes/{anio}/{minViajes}"
+          }
+        },
+        {
+          "name": "03 - Crear cuenta para el usuario",
+          "description": "🔐 Requiere: ADMIN\n\nCrea una cuenta (BASICA o PREMIUM) para un usuario.\n\n💡 Usa este endpoint cuando:\n- Eres ADMIN creando cuentas para usuarios\n- Necesitas asignar una cuenta antes de que un usuario pueda iniciar viajes",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idUsuario\": {{user_id}},\n  \"monto\": 1200.0,\n  \"tipo\": \"BASICA\",\n  \"fecha_alta\": \"2025-11-12T00:00:00\",\n  \"cuentaActiva\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{cuenta_base_url}}/cuenta"
+          }
+        },
+        {
+          "name": "04 - Asegurar cuenta activa",
+          "description": "🔐 Requiere: ADMIN\n\nActiva o desactiva una cuenta de usuario.\n\n💡 Usa este endpoint cuando:\n- Eres ADMIN y necesitas anular/habilitar cuentas\n- Un usuario no puede iniciar viajes (cuenta inactiva)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"activa\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{cuenta_base_url}}/cuenta/{{cuenta_id}}/estado"
+          }
+        },
+        {
+          "name": "05 - Crear parada",
+          "description": "🔐 Requiere: ADMIN\n\nCrea una nueva parada donde los monopatines pueden estar estacionados.\n\n💡 Usa este endpoint cuando:\n- Eres ADMIN configurando la red de paradas\n- Necesitas definir ubicaciones donde los usuarios pueden dejar monopatines",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"direccion\": \"Av. Siempreviva 742\",\n  \"nombre\": \"Parada Centro\",\n  \"latitud\": {{latitud}},\n  \"longitud\": {{longitud}},\n  \"monopatinIds\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{parada_base_url}}/paradas"
+          }
+        },
+        {
+          "name": "06 - Crear monopatín (LIBRE)",
+          "description": "🔐 Requiere: ADMIN\n\nCrea un nuevo monopatín en estado LIBRE.\n\n💡 Usa este endpoint cuando:\n- Eres ADMIN agregando monopatines a la flota\n- Necesitas crear monopatines para que los usuarios puedan usarlos",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idMonopatin\": {{monopatin_id}},\n  \"estadoMonopatin\": \"LIBRE\",\n  \"kmRecorridos\": 0,\n  \"viajeId\": null,\n  \"latitud\": {{latitud}},\n  \"longitud\": {{longitud}},\n  \"paradaId\": {{parada_id}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{monopatin_base_url}}/monopatines"
+          }
+        },
+        {
+          "name": "07 - Crear tarifa vigente",
+          "description": "🔐 Requiere: ADMIN\n\nCrea una nueva tarifa que se aplicará desde la fecha especificada.\n\n💡 Usa este endpoint cuando:\n- Eres ADMIN ajustando precios (reporte f)\n- Necesitas configurar tarifas para facturación\n- Quieres que los nuevos precios se activen desde cierta fecha",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"precioPorKm\": 40.0,\n  \"precioPorMinuto\": 5.0,\n  \"recargoPausa\": 20.0,\n  \"fechaInicio\": \"2025-11-01\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{facturacion_base_url}}/tarifas"
+          }
+        },
+        {
+          "name": "08 - Iniciar viaje (valida cuenta y monopatín)",
+          "description": "🔐 Requiere: USER\n\nInicia un viaje. Valida que la cuenta esté activa y el monopatín esté LIBRE.\n\n💡 Usa este endpoint cuando:\n- Eres USER y quieres comenzar a usar un monopatín\n- El monopatín debe estar en estado LIBRE\n- Tu cuenta debe estar activa",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idCuenta\": {{cuenta_id}},\n  \"idUsuario\": {{user_id}},\n  \"idMonopatin\": {{monopatin_id}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{viaje_base_url}}/viajes/start"
+          }
+        },
+        {
+          "name": "09 - Registrar pausa (opcional)",
+          "description": "🔐 Requiere: USER\n\nRegistra una pausa durante un viaje activo.\n\n💡 Usa este endpoint cuando:\n- Eres USER y necesitas hacer una pausa en tu viaje\n- El viaje debe estar activo (iniciado pero no finalizado)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fechaInicio\": \"2025-11-12T17:15:00\",\n  \"fechaFin\": \"2025-11-12T17:25:00\",\n  \"pausaTotal\": 10,\n  \"viaje\": {\n    \"idViaje\": {{viaje_id}}\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{viaje_base_url}}/pausas"
+          }
+        },
+        {
+          "name": "10 - Finalizar pausa (opcional)",
+          "description": "🔐 Requiere: USER\n\nFinaliza una pausa activa.\n\n💡 Usa este endpoint cuando:\n- Eres USER y quieres terminar una pausa\n- Necesitas actualizar el tiempo total de pausa",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fechaInicio\": \"2025-11-12T17:15:00\",\n  \"fechaFin\": \"2025-11-12T17:30:00\",\n  \"pausaTotal\": 15,\n  \"viaje\": {\n    \"idViaje\": {{viaje_id}}\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{viaje_base_url}}/pausas/{{pausa_id}}"
+          }
+        },
+        {
+          "name": "11 - Finalizar viaje (actualiza flota y factura)",
+          "description": "🔐 Requiere: USER\n\nFinaliza un viaje activo. Actualiza el estado del monopatín y genera la factura.\n\n💡 Usa este endpoint cuando:\n- Eres USER y terminaste de usar el monopatín\n- El viaje debe estar activo (iniciado pero no finalizado)\n- Debes especificar dónde dejaste el monopatín (parada o coordenadas)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"kilometrosRecorridos\": 3.5,\n  \"paradaId\": {{parada_id}},\n  \"latitud\": {{latitud}},\n  \"longitud\": {{longitud}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{viaje_base_url}}/viajes/{{viaje_id}}/finalizar"
+          }
+        },
+        {
+          "name": "12 - Total facturado en rango de meses",
+          "description": "🔐 Requiere: ADMIN\n\nReporte d: Consulta el total facturado en un rango de meses de cierto año.\n\n💡 Usa este endpoint cuando:\n- Eres ADMIN y necesitas ver facturación por período\n- Quieres analizar ingresos mensuales",
+          "request": {
+            "method": "GET",
+                "header": [],
+            "url": "{{facturacion_base_url}}/facturacion/total-mensual?anio={{anio_busqueda}}&mesInicio={{mes_inicio_actual}}&mesFin={{mes_fin_actual}}"
+          }
+        },
+        {
+          "name": "13 - Reporte de uso por kilómetros",
+          "description": "🔐 Requiere: ADMIN\n\nReporte a: Genera reporte de uso de monopatines por kilómetros para mantenimiento.\n\n💡 Usa este endpoint cuando:\n- Eres ADMIN y necesitas saber qué monopatines requieren mantenimiento\n- Puedes incluir o excluir tiempos de pausa",
+          "request": {
+            "method": "GET",
+                "header": [],
+            "url": "{{viaje_base_url}}/viajes/reportes/kilometros?desde={{reporte_desde}}&hasta={{reporte_hasta}}&incluirPausas=true"
+          }
+        },
+        {
+          "name": "14 - Monopatines con más viajes",
+          "description": "🔐 Requiere: ADMIN\n\nReporte c: Consulta monopatines con más de X viajes en un cierto año.\n\n💡 Usa este endpoint cuando:\n- Eres ADMIN y necesitas identificar monopatines más utilizados\n- Quieres analizar la frecuencia de uso de la flota",
+          "request": {
+            "method": "GET",
+                "header": [],
+            "url": "{{viaje_base_url}}/viajes/reportes/monopatines-frecuentes?anio={{anio_busqueda}}&minViajes={{min_viajes}}"
+          }
+        },
+        {
+          "name": "15 - Resumen estados de monopatines",
+          "description": "🔐 Requiere: ADMIN\n\nObtiene un resumen de cuántos monopatines hay en cada estado.\n\n💡 Usa este endpoint cuando:\n- Eres ADMIN y necesitas ver el estado general de la flota\n- Quieres saber cuántos monopatines están LIBRE, EN_USO, MANTENIMIENTO, etc.",
+          "request": {
+            "method": "GET",
+                "header": [],
+            "url": "{{monopatin_base_url}}/monopatines/resumen/estado"
+          }
+        },
+        {
+          "name": "16 - Reporte e: Usuarios que más utilizan (por período y tipo)",
+          "description": "🔐 Requiere: ADMIN\n\nReporte e: Ver usuarios que más utilizan los monopatines, filtrado por período y tipo de usuario.\n\n💡 Usa este endpoint cuando:\n- Eres ADMIN y necesitas identificar usuarios más activos\n- Quieres filtrar por tipo de usuario (USER, ADMIN, etc.)\n- Necesitas analizar uso en un período específico",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{user_base_url}}/users/usuarios-mas-viajes",
+              "host": [
+                "{{user_base_url}}"
+              ],
+              "path": [
+                "users",
+                "usuarios-mas-viajes"
+              ],
+              "query": [
+                {
+                  "key": "desde",
+                  "value": "2025-01-01T00:00:00"
+                },
+                {
+                  "key": "hasta",
+                  "value": "2025-12-31T23:59:59"
+                },
+                {
+                  "key": "tipoUsuario",
+                  "value": "USER"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "17 - Reporte g: Monopatines cercanos",
+          "description": "🔓 ENDPOINT PÚBLICO - No requiere autenticación\n\nReporte g: Busca monopatines cercanos a una ubicación.\n\n💡 Usa este endpoint cuando:\n- Eres USER y quieres encontrar monopatines cerca de ti\n- Puedes especificar la distancia máxima en kilómetros\n- No requiere autenticación (público)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{user_base_url}}/users/monopatines-cercanos",
+              "host": [
+                "{{user_base_url}}"
+              ],
+              "path": [
+                "users",
+                "monopatines-cercanos"
+              ],
+              "query": [
+                {
+                  "key": "latitud",
+                  "value": "{{latitud}}"
+                },
+                {
+                  "key": "longitud",
+                  "value": "{{longitud}}"
+                },
+                {
+                  "key": "distanciaKm",
+                  "value": "{{radio_km}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "18 - Reporte h: Uso por usuario en período",
+          "description": "🔐 Requiere: USER\n\nReporte h: Consulta cuánto has usado los monopatines en un período.\n\n💡 Usa este endpoint cuando:\n- Eres USER y quieres ver tu historial de uso\n- Opcionalmente puedes incluir usuarios relacionados a tu cuenta\n- Necesitas ver tus viajes en un rango de fechas",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{viaje_base_url}}/viajes/usado-en-periodo",
+              "host": [
+                "{{viaje_base_url}}"
+              ],
+              "path": [
+                "viajes",
+                "usado-en-periodo"
+              ],
+              "query": [
+                {
+                  "key": "idUsuario",
+                  "value": "{{user_id}}"
+                },
+                {
+                  "key": "idCuenta",
+                  "value": "{{cuenta_id}}",
+                  "description": "Opcional: incluir usuarios relacionados de la cuenta",
+                  "disabled": true
+                },
+                {
+                  "key": "desde",
+                  "value": "{{reporte_desde}}"
+                },
+                {
+                  "key": "hasta",
+                  "value": "{{reporte_hasta}}"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "CRUD por Servicio",
+      "description": "Referencia de endpoints de cada microservicio agrupados por dominio.",
+      "item": [
+        {
+          "name": "User",
+          "item": [
+            {
+              "name": "Registrarse (crear usuario y obtener JWT)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "if (pm.response.code === 201) {",
+                      "    var jsonData = pm.response.json();",
+                      "    pm.environment.set('jwt_token', jsonData.token);",
+                      "    pm.environment.set('user_id', jsonData.userId);",
+                      "    console.log('Usuario registrado. Token guardado:', jsonData.token);",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"nombre\": \"Juan\",\n  \"apellido\": \"Pérez\",\n  \"mail\": \"juan@example.com\",\n  \"telefono\": \"1234-5678\",\n  \"rol\": \"USER\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": "{{user_base_url}}/users/register"
+              }
+            },
+            {
+              "name": "Login (obtener JWT)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "if (pm.response.code === 200) {",
+                      "    var jsonData = pm.response.json();",
+                      "    pm.environment.set('jwt_token', jsonData.token);",
+                      "    console.log('Token guardado:', jsonData.token);",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"userId\": {{user_id}}\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": "{{user_base_url}}/users/login"
+              }
+            },
+            {
+              "name": "Listar usuarios",
+              "request": {
+                "method": "GET",
+                "header": [
+                ],
+                "url": "{{user_base_url}}/users"
+              }
+            },
+            {
+              "name": "Buscar usuario por ID",
+              "request": {
+                "method": "GET",
+                "header": [
+                ],
+                "url": "{{user_base_url}}/users/{{user_id}}"
+              }
+            },
+            {
+              "name": "Crear usuario",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"nombre\": \"Juan\",\n  \"apellido\": \"Pérez\",\n  \"mail\": \"juan@example.com\",\n  \"telefono\": \"1234-5678\",\n  \"rol\": \"USER\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": "{{user_base_url}}/users"
+              }
+            },
+            {
+              "name": "Reporte e: Usuarios que más utilizan",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{user_base_url}}/users/usuarios-mas-viajes",
+                  "host": [
+                    "{{user_base_url}}"
+                  ],
+                  "path": [
+                    "users",
+                    "usuarios-mas-viajes"
+                  ],
+                  "query": [
+                    {
+                      "key": "desde",
+                      "value": "2025-01-01T00:00:00"
+                    },
+                    {
+                      "key": "hasta",
+                      "value": "2025-12-31T23:59:59"
+                    },
+                    {
+                      "key": "tipoUsuario",
+                      "value": "USER"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Reporte g: Monopatines cercanos",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{user_base_url}}/users/monopatines-cercanos",
+                  "host": [
+                    "{{user_base_url}}"
+                  ],
+                  "path": [
+                    "users",
+                    "monopatines-cercanos"
+                  ],
+                  "query": [
+                    {
+                      "key": "latitud",
+                      "value": "{{latitud}}"
+                    },
+                    {
+                      "key": "longitud",
+                      "value": "{{longitud}}"
+                    },
+                    {
+                      "key": "distanciaKm",
+                      "value": "{{radio_km}}"
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Parada",
+          "item": [
+            {
+              "name": "Listar paradas",
+              "request": {
+                "method": "GET",
+                "header": [
+                ],
+                "url": "{{parada_base_url}}/paradas"
+              }
+            },
+            {
+              "name": "Buscar parada por ID",
+              "request": {
+                "method": "GET",
+                "header": [
+                ],
+                "url": "{{parada_base_url}}/paradas/{{parada_id}}"
+              }
+            },
+            {
+              "name": "Crear parada",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"direccion\": \"Av. Santa Fe 123\",\n  \"nombre\": \"Parada Norte\",\n  \"latitud\": -34.58,\n  \"longitud\": -58.40,\n  \"monopatinIds\": []\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": "{{parada_base_url}}/paradas"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Monopatín",
+          "item": [
+            {
+              "name": "Listar monopatines",
+              "request": {
+                "method": "GET",
+                "header": [
+                ],
+                "url": "{{monopatin_base_url}}/monopatines"
+              }
+            },
+            {
+              "name": "Buscar monopatín por ID",
+              "request": {
+                "method": "GET",
+                "header": [
+                ],
+                "url": "{{monopatin_base_url}}/monopatines/{{monopatin_id}}"
+              }
+            },
+            {
+              "name": "Actualizar estado (manual)",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"estado\": \"LIBRE\",\n  \"viajeId\": null\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": "{{monopatin_base_url}}/monopatines/{{monopatin_id}}/estado"
+              }
+            },
+            {
+              "name": "Registrar mantenimiento",
+              "request": {
+                "method": "POST",
+                "header": [
+                ],
+                "url": "{{monopatin_base_url}}/monopatines/{{monopatin_id}}/mantenimiento"
+              }
+            },
+            {
+              "name": "Finalizar mantenimiento",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                ],
+                "url": "{{monopatin_base_url}}/monopatines/{{monopatin_id}}/mantenimiento"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Viaje",
+          "item": [
+            {
+              "name": "Listar viajes",
+              "request": {
+                "method": "GET",
+                "header": [
+                ],
+                "url": "{{viaje_base_url}}/viajes"
+              }
+            },
+            {
+              "name": "Buscar viaje por ID",
+              "request": {
+                "method": "GET",
+                "header": [
+                ],
+                "url": "{{viaje_base_url}}/viajes/{{viaje_id}}"
+              }
+            },
+            {
+              "name": "Crear viaje manual (sin validaciones)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"fechaInicio\": \"2025-11-12T17:00:00\",\n  \"fechaFin\": \"2025-11-12T17:30:00\",\n  \"kmRecorridos\": 2.0,\n  \"pausa\": false,\n  \"idMonopatin\": {{monopatin_id}},\n  \"idUsuario\": {{user_id}}\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": "{{viaje_base_url}}/viajes"
+              }
+            },
+            {
+              "name": "Listar pausas",
+              "request": {
+                "method": "GET",
+                "header": [
+                ],
+                "url": "{{viaje_base_url}}/pausas"
+              }
+            },
+            {
+              "name": "Reporte h: Uso por usuario en período",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{viaje_base_url}}/viajes/usado-en-periodo",
+                  "host": [
+                    "{{viaje_base_url}}"
+                  ],
+                  "path": [
+                    "viajes",
+                    "usado-en-periodo"
+                  ],
+                  "query": [
+                    {
+                      "key": "idUsuario",
+                      "value": "{{user_id}}"
+                    },
+                    {
+                      "key": "idCuenta",
+                      "value": "{{cuenta_id}}",
+                      "description": "Opcional: incluir usuarios relacionados",
+                      "disabled": true
+                    },
+                    {
+                      "key": "desde",
+                      "value": "{{reporte_desde}}"
+                    },
+                    {
+                      "key": "hasta",
+                      "value": "{{reporte_hasta}}"
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cuenta",
+          "item": [
+            {
+              "name": "Listar cuentas",
+              "request": {
+                "method": "GET",
+                "header": [
+                ],
+                "url": "{{cuenta_base_url}}/cuenta"
+              }
+            },
+            {
+              "name": "Buscar cuenta por ID",
+              "request": {
+                "method": "GET",
+                "header": [
+                ],
+                "url": "{{cuenta_base_url}}/cuenta/{{cuenta_id}}"
+              }
+            },
+            {
+              "name": "Crear cuenta",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"idUsuario\": {{user_id}},\n  \"monto\": 800.0,\n  \"tipo\": \"PREMIUM\",\n  \"fecha_alta\": \"2025-11-12T00:00:00\",\n  \"cuentaActiva\": true\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": "{{cuenta_base_url}}/cuenta"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Facturación y Tarifas",
+          "item": [
+            {
+              "name": "Generar factura manual",
+              "request": {
+                "method": "POST",
+                "header": [
+                ],
+                "url": "{{facturacion_base_url}}/facturacion/generar?idCuenta={{cuenta_id}}&idViaje={{viaje_id}}&km={{kilometros_recorridos}}&minutos={{minutos_viaje}}&pausaExtendida={{pausa_extendida}}"
+              }
+            },
+            {
+              "name": "Obtener tarifa vigente",
+              "request": {
+                "method": "GET",
+                "header": [
+                ],
+                "url": "{{facturacion_base_url}}/tarifas/vigente"
+              }
+            },
+            {
+              "name": "Crear tarifa",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"precioPorKm\": 30.0,\n  \"precioPorMinuto\": 4.0,\n  \"recargoPausa\": 15.0,\n  \"fechaInicio\": \"2025-10-01\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": "{{facturacion_base_url}}/tarifas"
+              }
+            },
+            {
+              "name": "Total facturado (fecha a fecha)",
+              "request": {
+                "method": "GET",
+                "header": [
+                ],
+                "url": "{{facturacion_base_url}}/facturacion/total?desde={{reporte_desde}}&hasta={{reporte_hasta}}"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+version: "3.8"
+
+services:
+  parada-service:
+    build: .
+    container_name: parada_service
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    depends_on:
+      - inte4_parada_db
+    networks:
+      - inte4_net
+    ports:
+      - "8002:8002"
+    restart: unless-stopped
+
+networks:
+  inte4_net:
+    external: true
