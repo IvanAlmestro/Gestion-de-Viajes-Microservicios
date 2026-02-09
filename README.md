@@ -1,6 +1,6 @@
-# Microservicios Grupo 8
+Sistema Gestion De Viajes Microservicios
 
-Este módulo contiene los seis microservicios Spring Boot del trabajo integrador junto con la infraestructura para ejecutarlos en contenedores Docker.
+Este módulo contiene los seis microservicios Spring Boot junto con la infraestructura para ejecutarlos en contenedores Docker.
 
 - `microservicio-user`
 - `microservicio-parada`
@@ -240,6 +240,3 @@ curl http://localhost:8005/cuenta/1 \
 #### Informativo (diagrama de flujo)
 
 <img width="1191" height="645" alt="diagrama Tp4" src="https://github.com/user-attachments/assets/7667711b-c8da-49cd-9730-6e34fd024ded" />
-
-
-Grupo 8 [el más mejor] – Arquitecturas Web – TP Integrador
