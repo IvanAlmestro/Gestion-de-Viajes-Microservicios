@@ -27,7 +27,7 @@
     <packaging>pom</packaging>
     <name>microserviciosGrupo8</name>
     <description>microserviciosGrupo8</description>
-    <modules><!-- No se agrega groq ni mock aca -->
+    <modules><!-- No se agrega mock aca -->
         <module>microservicio-cuenta</module>
         <module>microservicio-monopatin</module>
         <module>microservicio-parada</module>
